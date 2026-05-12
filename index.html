@@ -1,0 +1,925 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Activity Detection System</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        :root {
+            --brand-green: #38b2ac;
+            --nature-green: #4a7c59;
+            --nature-green-light: #6aab7e;
+            --nature-green-pale: #d4edda;
+            --nature-sun: #f5a623;
+            --brand-orange: #ff8c00;
+            --brand-gradient: linear-gradient(135deg, #38b2ac, #4fd1c5);
+            --bg-light: #f0f2f5;
+            --text-dark: #333;
+            --error-red: #e53e3e;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Montserrat', sans-serif; }
+
+        body {
+            height: 100vh;
+            display: flex; justify-content: center; align-items: center; overflow: hidden;
+            background:
+                linear-gradient(135deg, rgba(20,45,28,0.78) 0%, rgba(38,74,50,0.72) 50%, rgba(55,95,64,0.80) 100%),
+                url('https://images.unsplash.com/photo-1444492417251-9c84a5fa18e0?w=1600&q=80') center/cover no-repeat fixed;
+        }
+
+        .auth-particle {
+            position: fixed; border-radius: 50%; pointer-events: none; z-index: 1;
+            animation: particleDrift linear infinite;
+        }
+        @keyframes particleDrift {
+            0%   { transform: translateY(110vh) scale(0);   opacity: 0; }
+            10%  { opacity: 0.6; }
+            90%  { opacity: 0.3; }
+            100% { transform: translateY(-10vh) scale(1.2); opacity: 0; }
+        }
+
+        .top-nav {
+            position: fixed; top: 0; width: 100%; padding: 18px 80px;
+            display: none; justify-content: space-between; align-items: center; z-index: 2000;
+            background: rgba(255,255,255,0.96); backdrop-filter: blur(14px);
+            border-bottom: 1px solid rgba(74,124,89,0.15);
+            box-shadow: 0 2px 20px rgba(45,90,61,0.08);
+        }
+        .nav-links a { color: #444; text-decoration: none; margin-left: 25px; font-weight: 600; font-size: 13px; letter-spacing: 0.5px; transition: color 0.2s; }
+        .nav-links a:hover { color: var(--nature-green); }
+        .user-profile { width: 40px; height: 40px; background: linear-gradient(135deg, #4a7c59, #6aab7e); color: #fff; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: 700; font-size: 18px; margin-left: 20px; box-shadow: 0 4px 12px rgba(74,124,89,0.35); }
+
+        .main-card {
+            background: transparent;
+            border-radius: 22px;
+            box-shadow: 0 30px 80px rgba(0,0,0,0.45), 0 0 0 1px rgba(255,255,255,0.07);
+            position: relative; overflow: hidden;
+            width: 1000px; max-width: 95%; height: 580px;
+            display: flex; z-index: 5;
+            animation: cardEntrance 0.8s cubic-bezier(0.175,0.885,0.32,1.2) both;
+        }
+        @keyframes cardEntrance {
+            from { opacity: 0; transform: translateY(40px) scale(0.97); }
+            to   { opacity: 1; transform: translateY(0)   scale(1);    }
+        }
+        .card-hidden { display: none !important; }
+
+        .panel-left {
+            flex: 1; position: relative; overflow: hidden;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            padding: 50px 40px; text-align: center; color: white;
+        }
+        .panel-left-bg {
+            position: absolute; inset: 0;
+            background:
+                linear-gradient(160deg, rgba(20,45,28,0.88) 0%, rgba(45,90,55,0.80) 55%, rgba(74,124,89,0.72) 100%),
+                url('https://images.unsplash.com/photo-1448375240586-882707db888b?w=900&q=80') center/cover no-repeat;
+            transition: transform 8s ease;
+        }
+        .panel-left:hover .panel-left-bg { transform: scale(1.04); }
+        .panel-deco-ring { position: absolute; border-radius: 50%; border: 1px solid rgba(178,238,204,0.12); pointer-events: none; }
+        .panel-deco-ring-1 { width: 280px; height: 280px; top: -80px; left: -80px; animation: rotateSlow 22s linear infinite; }
+        .panel-deco-ring-2 { width: 200px; height: 200px; bottom: -60px; right: -60px; animation: rotateSlow 16s linear infinite reverse; }
+        .panel-deco-ring-3 { width: 140px; height: 140px; top: 50%; left: 50%; animation: rotateCentered 12s linear infinite; border-color: rgba(178,238,204,0.08); }
+        @keyframes rotateSlow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes rotateCentered { from { transform: translate(-50%,-50%) rotate(0deg); } to { transform: translate(-50%,-50%) rotate(360deg); } }
+        .panel-left-content { position: relative; z-index: 2; }
+        .panel-left-badge { display: inline-flex; align-items: center; gap: 7px; background: rgba(178,238,204,0.14); border: 1px solid rgba(178,238,204,0.32); color: #b2eecc; font-size: 10px; font-weight: 700; letter-spacing: 2.5px; text-transform: uppercase; padding: 6px 14px; border-radius: 20px; margin-bottom: 24px; animation: fadeInDown 0.7s ease 0.4s both; }
+        .panel-left h1 { font-size: 34px; font-weight: 700; line-height: 1.2; margin-bottom: 16px; text-shadow: 0 3px 18px rgba(0,0,0,0.35); animation: fadeInDown 0.7s ease 0.5s both; }
+        .panel-left p { font-size: 14px; color: rgba(255,255,255,0.68); line-height: 1.75; margin-bottom: 32px; font-weight: 300; animation: fadeInDown 0.7s ease 0.6s both; }
+        .panel-left button.ghost { background: transparent; border: 1.5px solid rgba(255,255,255,0.45); color: #fff; font-size: 12px; font-weight: 700; padding: 12px 38px; border-radius: 30px; letter-spacing: 1.5px; cursor: pointer; transition: all 0.3s; text-transform: uppercase; animation: fadeInDown 0.7s ease 0.7s both; backdrop-filter: blur(6px); }
+        .panel-left button.ghost:hover { background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.75); transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0,0,0,0.25); }
+        .float-icon { position: absolute; z-index: 1; pointer-events: none; font-size: 22px; color: rgba(178,238,204,0.18); animation: floatIcon ease-in-out infinite; }
+        .float-icon:nth-child(1) { top: 15%; left: 10%; animation-duration: 5s; }
+        .float-icon:nth-child(2) { top: 25%; right: 12%; font-size: 16px; animation-duration: 6.5s; animation-delay: -2s; }
+        .float-icon:nth-child(3) { bottom: 25%; left: 8%; font-size: 18px; animation-duration: 7s; animation-delay: -4s; }
+        .float-icon:nth-child(4) { bottom: 18%; right: 10%; font-size: 14px; animation-duration: 4.5s; animation-delay: -1s; }
+        @keyframes floatIcon { 0%,100% { transform: translateY(0) rotate(0deg); opacity: 0.5; } 50% { transform: translateY(-14px) rotate(8deg); opacity: 1; } }
+        .panel-stats { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.22); backdrop-filter: blur(10px); border-top: 1px solid rgba(255,255,255,0.08); display: flex; justify-content: space-around; padding: 14px 10px; z-index: 2; animation: fadeInUp 0.7s ease 0.9s both; }
+        .panel-stat { text-align: center; }
+        .panel-stat-val { font-size: 20px; font-weight: 700; color: #b2eecc; line-height: 1; }
+        .panel-stat-lbl { font-size: 9px; font-weight: 600; color: rgba(255,255,255,0.42); letter-spacing: 1.5px; text-transform: uppercase; margin-top: 4px; }
+        .panel-right { flex: 1; background: #fff; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 45px 48px; text-align: center; position: relative; overflow: hidden; }
+        .panel-right::before { content: ''; position: absolute; bottom: -60px; right: -60px; width: 260px; height: 260px; border-radius: 50%; background: radial-gradient(circle, rgba(74,124,89,0.06) 0%, transparent 70%); pointer-events: none; }
+        .panel-right::after { content: ''; position: absolute; top: -40px; left: -40px; width: 180px; height: 180px; border-radius: 50%; background: radial-gradient(circle, rgba(56,178,172,0.05) 0%, transparent 70%); pointer-events: none; }
+        .section { width: 100%; display: none; }
+        .auth-container { width: 100%; display: flex; height: 100%; }
+        .form-title { font-size: 26px; font-weight: 700; color: #2d3748; margin-bottom: 6px; animation: fadeInDown 0.6s ease both; }
+        .form-subtitle { font-size: 13px; color: #a0aec0; margin-bottom: 28px; font-weight: 400; animation: fadeInDown 0.6s ease 0.05s both; }
+        .input-container { background: #f7faf8; border: 1.5px solid #e8f0eb; padding: 13px 16px; margin: 8px 0; width: 100%; border-radius: 10px; display: flex; align-items: center; transition: border-color 0.25s, box-shadow 0.25s, background 0.25s; animation: fadeInUp 0.5s ease both; }
+        .input-container:focus-within { border-color: #6aab7e; background: #f0f8f3; box-shadow: 0 0 0 3px rgba(106,171,126,0.12); }
+        .input-container i { color: #6aab7e; margin-right: 11px; font-size: 14px; flex-shrink: 0; }
+        .input-container input { background: transparent; border: none; outline: none; width: 100%; font-size: 14px; color: #2d3748; font-family: 'Montserrat', sans-serif; }
+        .input-container input::placeholder { color: #b0bec5; }
+        .btn-auth { border-radius: 10px !important; border: none !important; background: linear-gradient(135deg, #4a7c59, #6aab7e) !important; color: #fff !important; font-size: 13px !important; font-weight: 700 !important; padding: 14px 45px !important; letter-spacing: 1.2px !important; text-transform: uppercase; cursor: pointer; transition: all 0.3s ease !important; box-shadow: 0 6px 22px rgba(74,124,89,0.35) !important; position: relative; overflow: hidden; width: 100%; margin-top: 8px; animation: fadeInUp 0.5s ease 0.25s both; }
+        .btn-auth::after { content: ''; position: absolute; top: -50%; left: -60%; width: 40%; height: 200%; background: rgba(255,255,255,0.12); transform: skewX(-20deg); transition: left 0.5s; }
+        .btn-auth:hover::after { left: 130%; }
+        .btn-auth:hover { transform: translateY(-2px) !important; box-shadow: 0 10px 30px rgba(74,124,89,0.5) !important; }
+        button.ghost { background: transparent; border-color: white; }
+        .error-msg { color: var(--error-red); font-size: 12px; margin-top: 10px; display: none; font-weight: 600; }
+        .auth-divider { display: flex; align-items: center; gap: 12px; margin: 14px 0; width: 100%; }
+        .auth-divider::before, .auth-divider::after { content: ''; flex: 1; height: 1px; background: #edf0ee; }
+        .auth-divider span { font-size: 11px; color: #b0bec5; font-weight: 600; letter-spacing: 1px; }
+        .auth-socials { display: flex; gap: 10px; justify-content: center; margin-bottom: 6px; }
+        .auth-social-btn { width: 42px; height: 42px; border-radius: 10px; border: 1.5px solid #e8f0eb !important; background: #f7faf8 !important; color: #6aab7e !important; display: flex; align-items: center; justify-content: center; font-size: 16px; cursor: pointer; padding: 0 !important; transition: all 0.2s ease !important; letter-spacing: 0 !important; text-transform: none !important; }
+        .auth-social-btn:hover { border-color: #6aab7e !important; background: #f0f8f3 !important; transform: translateY(-2px) !important; }
+
+        /* ─── HOME PAGE ─── */
+        #home { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #fff; display: none; flex-direction: column; z-index: 1000; overflow: hidden; }
+        .home-ticker { background: linear-gradient(90deg, #2d5a3d, #4a7c59, #6aab7e, #4a7c59, #2d5a3d); background-size: 400% 100%; animation: tickerGradient 6s ease infinite; color: rgba(255,255,255,0.85); font-size: 11px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; padding: 9px 0; text-align: center; flex-shrink: 0; }
+        @keyframes tickerGradient { 0%,100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
+        .hero-section { flex: 1; position: relative; overflow: hidden; display: flex; align-items: center; padding-left: 10%; }
+        .hero-bg { position: absolute; inset: 0; background: url('https://yakimaparks.com//assets/Gilbert-Open-Space_2.jpg') no-repeat center center; background-size: cover; transform-origin: center; animation: heroKenBurns 18s ease-in-out infinite alternate; }
+        @keyframes heroKenBurns { 0% { transform: scale(1) translateX(0px); } 100% { transform: scale(1.06) translateX(-15px); } }
+        .hero-overlay-gradient { position: absolute; inset: 0; background: linear-gradient(to right, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 60%), linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.06) 100%); pointer-events: none; }
+        .hero-particle { position: absolute; pointer-events: none; z-index: 1; width: 8px; height: 8px; border-radius: 50%; background: rgba(106,171,126,0.35); animation: heroParticle ease-in-out infinite; }
+        @keyframes heroParticle { 0%,100% { transform: translate(0,0) scale(1); opacity: 0.4; } 33% { transform: translate(20px,-30px) scale(1.3); opacity: 0.8; } 66% { transform: translate(-15px,15px) scale(0.7); opacity: 0.3; } }
+        .hero-overlay { position: relative; z-index: 2; background: rgba(255,255,255,0.93); backdrop-filter: blur(12px); padding: 55px 55px 50px; width: 570px; max-width: 90vw; border-radius: 16px; text-align: left; box-shadow: 0 20px 60px rgba(0,0,0,0.18), 0 0 0 1px rgba(255,255,255,0.6); animation: overlayEntrance 1s cubic-bezier(0.175,0.885,0.32,1.15) 0.2s both; border-top: 4px solid transparent; border-image: linear-gradient(90deg, #4a7c59, #6aab7e, #38b2ac) 1; }
+        @keyframes overlayEntrance { from { opacity: 0; transform: translateX(-40px) scale(0.97); } to { opacity: 1; transform: translateX(0) scale(1); } }
+        .hero-tag { display: inline-flex; align-items: center; gap: 7px; background: linear-gradient(135deg, rgba(74,124,89,0.1), rgba(56,178,172,0.08)); border: 1px solid rgba(74,124,89,0.22); color: #4a7c59; font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; padding: 5px 13px; border-radius: 20px; margin-bottom: 18px; }
+        .hero-tag span { width: 6px; height: 6px; border-radius: 50%; background: #6aab7e; animation: dotPulse 1.5s ease infinite; }
+        @keyframes dotPulse { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(0.6); } }
+        .hero-overlay h1 { font-size: 25px; color: #2d3748; margin-bottom: 18px; font-weight: 700; line-height: 1.12; animation: fadeInUp 0.7s ease 0.5s both; }
+        .hero-overlay h1 em { font-style: normal; color: #4a7c59; }
+        .hero-overlay p { color: #718096; font-size: 16px; line-height: 1.7; margin-bottom: 32px; font-weight: 400; animation: fadeInUp 0.7s ease 0.6s both; }
+        .cta-group { display: flex; gap: 14px; flex-wrap: wrap; animation: fadeInUp 0.7s ease 0.7s both; }
+        .btn-orange { background: linear-gradient(135deg, #ff8c00, #f5a623) !important; border: none !important; padding: 16px 32px !important; border-radius: 10px !important; font-size: 13px !important; font-weight: 700 !important; color: white !important; cursor: pointer; transition: all 0.3s ease !important; box-shadow: 0 6px 22px rgba(255,140,0,0.35) !important; letter-spacing: 0.5px !important; }
+        .btn-orange:hover { transform: translateY(-3px) !important; box-shadow: 0 12px 32px rgba(255,140,0,0.5) !important; }
+        .btn-dark { background: #2d3748 !important; border: none !important; padding: 16px 32px !important; border-radius: 10px !important; font-size: 13px !important; font-weight: 700 !important; color: white !important; cursor: pointer; transition: all 0.3s ease !important; box-shadow: 0 6px 22px rgba(45,55,72,0.3) !important; }
+        .btn-dark:hover { transform: translateY(-3px) !important; background: #1a202c !important; }
+        .hero-pills { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 22px; animation: fadeInUp 0.7s ease 0.8s both; }
+        .hero-pill { display: inline-flex; align-items: center; gap: 6px; background: rgba(74,124,89,0.08); border: 1px solid rgba(74,124,89,0.16); color: #4a7c59; font-size: 11px; font-weight: 600; padding: 5px 12px; border-radius: 20px; }
+        .hero-pill i { font-size: 10px; }
+        .hero-float-card { position: absolute; z-index: 2; right: 6%; bottom: 12%; background: rgba(255,255,255,0.92); backdrop-filter: blur(12px); border-radius: 14px; padding: 16px 20px; box-shadow: 0 12px 40px rgba(0,0,0,0.15); border: 1px solid rgba(255,255,255,0.7); min-width: 190px; animation: floatCard 4s ease-in-out infinite, cardSlideIn 1s ease 0.8s both; }
+        @keyframes floatCard { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+        @keyframes cardSlideIn { from { opacity: 0; transform: translateX(30px) translateY(0); } to { opacity: 1; transform: translateX(0) translateY(0); } }
+        .hero-float-card-inner { display: flex; align-items: center; gap: 12px; }
+        .hero-float-icon { width: 40px; height: 40px; border-radius: 10px; background: linear-gradient(135deg, #4a7c59, #6aab7e); display: flex; align-items: center; justify-content: center; color: white; font-size: 18px; flex-shrink: 0; }
+        .hero-float-card p { font-size: 12px; font-weight: 700; color: #2d3748; margin-bottom: 2px; }
+        .hero-float-card span { font-size: 11px; color: #718096; font-weight: 400; }
+        .hero-float-card-2 { position: absolute; z-index: 2; right: 5%; top: 20%; background: rgba(255,255,255,0.92); backdrop-filter: blur(12px); border-radius: 14px; padding: 14px 18px; box-shadow: 0 12px 40px rgba(0,0,0,0.12); border: 1px solid rgba(255,255,255,0.7); animation: floatCard 5s ease-in-out 1s infinite, cardSlideIn2 1s ease 1.2s both; }
+        @keyframes cardSlideIn2 { from { opacity: 0; transform: translateX(30px); } to { opacity: 1; transform: translateX(0); } }
+        .hero-float-card-2 .status-row { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; color: #2d3748; }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #6aab7e; animation: dotPulse 2s ease infinite; flex-shrink: 0; }
+        .hero-float-card-2 .sub-txt { font-size: 10px; color: #a0aec0; margin-top: 4px; font-weight: 400; }
+        .home-footer { background: linear-gradient(to right, #f7faf8, #eef5f0, #f7faf8); border-top: 1px solid rgba(74,124,89,0.1); display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 38px 10% 34px; flex-shrink: 0; }
+        .home-footer-tag { display: inline-flex; align-items: center; gap: 8px; background: rgba(74,124,89,0.08); border: 1px solid rgba(74,124,89,0.16); color: #4a7c59; font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; padding: 5px 14px; border-radius: 20px; margin-bottom: 14px; }
+        .home-footer h3 { font-weight: 700; color: #2d3748; font-size: 24px; margin-bottom: 10px; }
+        .home-footer p { font-size: 14px; color: #718096; max-width: 820px; line-height: 1.65; margin-bottom: 18px; }
+        .footer-stats { display: flex; gap: 40px; align-items: center; border-top: 1px solid rgba(74,124,89,0.1); padding-top: 18px; margin-top: 6px; }
+        .footer-stat { text-align: center; }
+        .footer-stat-val { font-size: 22px; font-weight: 700; color: #4a7c59; }
+        .footer-stat-lbl { font-size: 10px; color: #a0aec0; letter-spacing: 1.5px; text-transform: uppercase; font-weight: 600; margin-top: 3px; }
+        .footer-stat-divider { width: 1px; height: 40px; background: rgba(74,124,89,0.15); }
+
+        /* ─── ABOUT PAGE ─── */
+        #about { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; display: none; flex-direction: column; z-index: 1000; overflow-y: auto; }
+        #about::-webkit-scrollbar { width: 5px; }
+        #about::-webkit-scrollbar-thumb { background: rgba(74,124,89,0.3); border-radius: 3px; }
+        .about-hero { position: relative; height: 62vh; min-height: 440px; background: url('https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1600&q=80') no-repeat center center; background-size: cover; display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0; }
+        .about-hero::before { content: ''; position: absolute; inset: 0; background: linear-gradient(135deg, rgba(27,52,36,0.85) 0%, rgba(45,90,61,0.7) 55%, rgba(74,124,89,0.5) 100%); }
+        .about-hero-content { position: relative; z-index: 2; text-align: center; padding: 0 20px; animation: fadeInDown 0.8s ease both; }
+        .about-tag { display: inline-block; background: rgba(106,171,126,0.22); border: 1px solid rgba(106,171,126,0.45); color: #b2eecc; font-size: 11px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase; padding: 7px 18px; border-radius: 20px; margin-bottom: 22px; }
+        .about-hero-content h1 { font-size: 54px; font-weight: 700; color: #fff; text-shadow: 0 4px 30px rgba(0,0,0,0.35); line-height: 1.15; margin-bottom: 18px; }
+        .about-hero-content p { color: rgba(255,255,255,0.72); font-size: 18px; font-weight: 300; max-width: 600px; margin: 0 auto; line-height: 1.75; }
+        .about-body { background: #fff; padding: 80px 10%; }
+        .about-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 65px; align-items: center; max-width: 1100px; margin: 0 auto 80px; }
+        .about-text h2 { font-size: 36px; font-weight: 700; color: #333; margin-bottom: 16px; line-height: 1.25; }
+        .about-text h2 span { color: var(--nature-green); }
+        .about-text p { color: #666; font-size: 16px; line-height: 1.85; margin-bottom: 18px; }
+        .about-img-wrap { border-radius: 18px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.12); position: relative; }
+        .about-img-wrap img { width: 100%; height: 320px; object-fit: cover; display: block; transition: transform 0.5s ease; }
+        .about-img-wrap:hover img { transform: scale(1.04); }
+        .about-img-badge { position: absolute; bottom: 20px; left: 20px; background: rgba(255,255,255,0.93); backdrop-filter: blur(10px); border-radius: 10px; padding: 12px 18px; font-size: 13px; font-weight: 600; color: var(--nature-green); display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .feature-section { background: #f4f8f5; padding: 75px 10%; }
+        .section-title { text-align: center; margin-bottom: 55px; }
+        .section-title h3 { font-size: 34px; font-weight: 700; color: #333; margin-bottom: 10px; }
+        .section-title p { color: #777; font-size: 16px; }
+        .features-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px; max-width: 1100px; margin: 0 auto; }
+        .feat-card { background: #fff; border-radius: 18px; padding: 36px 28px; border: 1px solid rgba(74,124,89,0.1); box-shadow: 0 6px 25px rgba(0,0,0,0.05); transition: transform 0.3s, box-shadow 0.3s; }
+        .feat-card:hover { transform: translateY(-7px); box-shadow: 0 18px 50px rgba(74,124,89,0.14); }
+        .feat-icon { width: 58px; height: 58px; background: linear-gradient(135deg, rgba(74,124,89,0.13), rgba(106,171,126,0.07)); border-radius: 15px; display: flex; align-items: center; justify-content: center; font-size: 22px; color: var(--nature-green); margin-bottom: 18px; border: 1px solid rgba(74,124,89,0.14); }
+        .feat-card h4 { font-size: 17px; font-weight: 700; color: #333; margin-bottom: 10px; }
+        .feat-card p { color: #777; font-size: 14px; line-height: 1.75; }
+        .contact-section { position: relative; overflow: visible; padding: 90px 10% 100px; flex-shrink: 0; }
+        .contact-section-bg { position: absolute; inset: 0; background: linear-gradient(135deg, rgba(27,52,36,0.94) 0%, rgba(40,80,55,0.92) 50%, rgba(58,100,70,0.93) 100%), url('https://images.unsplash.com/photo-1501854140801-50d01698950b?w=1600&q=70') center/cover no-repeat; z-index: 0; }
+        .contact-inner { position: relative; z-index: 2; max-width: 1100px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1.2fr; gap: 70px; align-items: start; }
+        .contact-info h3 { font-size: 38px; font-weight: 700; color: #fff; line-height: 1.25; margin-bottom: 16px; }
+        .contact-info h3 span { color: #b2eecc; }
+        .contact-info p { color: rgba(255,255,255,0.72); font-size: 16px; line-height: 1.85; margin-bottom: 38px; }
+        .contact-chips { display: flex; flex-direction: column; gap: 16px; }
+        .contact-chip { display: flex; align-items: center; gap: 14px; }
+        .contact-chip-icon { width: 46px; height: 46px; border-radius: 13px; background: rgba(106,171,126,0.22); border: 1px solid rgba(106,171,126,0.45); display: flex; align-items: center; justify-content: center; font-size: 16px; color: #b2eecc; flex-shrink: 0; }
+        .contact-chip-text { color: rgba(255,255,255,0.75); font-size: 14px; }
+        .contact-chip-text strong { color: #fff; display: block; font-size: 15px; margin-bottom: 2px; }
+        .contact-form-box { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 22px; backdrop-filter: blur(22px); padding: 46px 42px; box-shadow: 0 22px 65px rgba(0,0,0,0.32); }
+        .contact-form-box h4 { font-size: 23px; font-weight: 700; color: #fff; margin-bottom: 6px; }
+        .contact-form-box .form-sub { color: rgba(255,255,255,0.6); font-size: 13px; margin-bottom: 30px; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; color: rgba(255,255,255,0.65); font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px; }
+        .form-group input, .form-group textarea, .form-group select { width: 100%; background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.22); border-radius: 11px; padding: 13px 16px; color: #fff; font-size: 14px; font-family: 'Montserrat', sans-serif; outline: none; transition: border-color 0.2s, background 0.2s; }
+        .form-group input::placeholder, .form-group textarea::placeholder { color: rgba(255,255,255,0.35); }
+        .form-group input:focus, .form-group textarea:focus, .form-group select:focus { border-color: rgba(106,171,126,0.75); background: rgba(255,255,255,0.16); }
+        .form-group textarea { resize: vertical; min-height: 105px; }
+        .form-group select option { background: #2d5a3d; color: #fff; }
+        .btn-contact { width: 100%; padding: 16px !important; border-radius: 13px !important; background: linear-gradient(135deg, #4a7c59, #6aab7e) !important; border: none !important; font-size: 14px !important; font-weight: 700 !important; letter-spacing: 1.5px !important; color: white !important; cursor: pointer; transition: all 0.3s ease !important; box-shadow: 0 8px 28px rgba(74,124,89,0.45) !important; position: relative; overflow: hidden; margin-top: 6px; }
+        .btn-contact:hover { transform: translateY(-2px) !important; box-shadow: 0 14px 38px rgba(74,124,89,0.58) !important; }
+        .contact-success { display: none; background: rgba(106,171,126,0.14); border: 1px solid rgba(106,171,126,0.38); border-radius: 11px; padding: 14px 18px; color: #b2eecc; font-size: 14px; text-align: center; margin-top: 14px; }
+        .about-page-footer { background: #1a3326; padding: 32px; text-align: center; border-top: 1px solid rgba(106,171,126,0.1); flex-shrink: 0; }
+        .btn-about-back { background: transparent !important; border: 1px solid rgba(106,171,126,0.28) !important; border-radius: 10px !important; color: rgba(255,255,255,0.4) !important; font-size: 12px !important; font-weight: 600 !important; padding: 10px 28px !important; letter-spacing: 1px !important; cursor: pointer; transition: all 0.2s !important; }
+        .btn-about-back:hover { border-color: rgba(106,171,126,0.5) !important; color: #b2eecc !important; }
+
+        /* ─── UPLOAD PAGE ─── */
+        #upload { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; display: none; padding-top: 80px; z-index: 1000; overflow: hidden; }
+        .upload-bg { position: absolute; inset: 0; background: linear-gradient(135deg, rgba(20,45,28,0.91) 0%, rgba(38,74,50,0.88) 50%, rgba(55,95,64,0.9) 100%), url('https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=1600&q=80') center/cover no-repeat; }
+        .orb { position: absolute; border-radius: 50%; filter: blur(70px); opacity: 0.18; animation: floatOrb linear infinite; pointer-events: none; z-index: 1; }
+        .orb-1 { width: 350px; height: 350px; background: #4a7c59; top: 5%; left: -8%; animation-duration: 20s; }
+        .orb-2 { width: 220px; height: 220px; background: #f5a623; bottom: 8%; right: 3%; animation-duration: 15s; animation-delay: -5s; }
+        .orb-3 { width: 180px; height: 180px; background: #6aab7e; top: 55%; left: 55%; animation-duration: 24s; animation-delay: -12s; }
+        @keyframes floatOrb { 0%, 100% { transform: translate(0,0) scale(1); } 25% { transform: translate(30px,-40px) scale(1.1); } 50% { transform: translate(-20px,20px) scale(0.95); } 75% { transform: translate(40px,30px) scale(1.05); } }
+        .upload-content { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; justify-content: center; height: calc(100vh - 80px); padding: 20px; }
+        .upload-header { text-align: center; margin-bottom: 45px; animation: fadeInDown 0.7s ease both; }
+        .upload-header h2 { font-size: 38px; font-weight: 700; color: #fff; letter-spacing: -0.5px; text-shadow: 0 2px 20px rgba(20,45,28,0.5); }
+        .upload-header p { color: rgba(255,255,255,0.48); font-size: 15px; margin-top: 10px; font-weight: 300; }
+        .upload-card { background: rgba(255,255,255,0.07); border: 1.5px solid rgba(106,171,126,0.22); border-radius: 24px; backdrop-filter: blur(22px); padding: 50px 60px; max-width: 560px; width: 100%; text-align: center; box-shadow: 0 30px 80px rgba(0,0,0,0.32), inset 0 1px 0 rgba(255,255,255,0.07); animation: fadeInUp 0.7s ease 0.1s both; transition: transform 0.3s, box-shadow 0.3s; }
+        .upload-card:hover { transform: translateY(-4px); box-shadow: 0 40px 100px rgba(0,0,0,0.42), inset 0 1px 0 rgba(255,255,255,0.09); }
+        .drop-zone { border: 2px dashed rgba(106,171,126,0.4); border-radius: 16px; padding: 50px 30px; margin-bottom: 30px; cursor: pointer; transition: all 0.3s; position: relative; overflow: hidden; }
+        .drop-zone::before { content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%; background: linear-gradient(90deg, transparent, rgba(106,171,126,0.1), transparent); transition: left 0.5s; }
+        .drop-zone:hover::before { left: 100%; }
+        .drop-zone:hover { border-color: rgba(106,171,126,0.75); background: rgba(74,124,89,0.1); }
+        .drop-zone.drag-over { border-color: #6aab7e; background: rgba(74,124,89,0.14); transform: scale(1.01); }
+        .drop-icon { width: 70px; height: 70px; background: linear-gradient(135deg, rgba(74,124,89,0.25), rgba(106,171,126,0.1)); border-radius: 50%; margin: 0 auto 18px; display: flex; align-items: center; justify-content: center; font-size: 26px; color: #b2eecc; border: 1px solid rgba(106,171,126,0.28); transition: transform 0.3s; }
+        .drop-zone:hover .drop-icon { transform: scale(1.1) rotate(-5deg); }
+        .drop-zone h3 { color: #fff; font-size: 17px; margin-bottom: 8px; font-weight: 600; }
+        .drop-zone p { color: rgba(255,255,255,0.38); font-size: 13px; }
+        .drop-zone span { color: #b2eecc; font-weight: 600; }
+        #videoFile { display: none; }
+        .file-selected-info { display: none; align-items: center; gap: 12px; background: rgba(74,124,89,0.15); border: 1px solid rgba(106,171,126,0.28); border-radius: 10px; padding: 14px 18px; margin-bottom: 25px; animation: fadeInUp 0.3s ease; }
+        .file-selected-info i { color: #b2eecc; font-size: 20px; }
+        .file-name { color: #fff; font-size: 14px; font-weight: 500; flex: 1; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .file-clear { color: rgba(255,255,255,0.28); cursor: pointer; transition: color 0.2s; font-size: 14px; }
+        .file-clear:hover { color: var(--error-red); }
+        .btn-analyze { width: 100%; padding: 17px !important; border-radius: 12px !important; background: linear-gradient(135deg, #4a7c59, #5e9e72) !important; border: none !important; font-size: 14px !important; font-weight: 700 !important; letter-spacing: 1.5px !important; color: white !important; cursor: pointer; transition: all 0.3s !important; box-shadow: 0 8px 25px rgba(74,124,89,0.45) !important; position: relative; overflow: hidden; }
+        .btn-analyze:hover { transform: translateY(-2px) !important; box-shadow: 0 12px 35px rgba(74,124,89,0.6) !important; }
+        .upload-back-btn { background: transparent !important; color: rgba(255,255,255,0.32) !important; border: none !important; margin-top: 20px; cursor: pointer; font-size: 13px !important; font-weight: 500 !important; letter-spacing: 0.5px !important; transition: color 0.2s !important; padding: 8px 20px !important; }
+        .upload-back-btn:hover { color: rgba(255,255,255,0.65) !important; }
+
+        /* ─── ANALYSING INDICATOR ─── */
+        #analysingIndicator { display: none; position: absolute; top: 0; left: 0; right: 0; bottom: 0; flex-direction: column; align-items: center; justify-content: center; z-index: 10; background: linear-gradient(135deg, rgba(20,45,28,0.97) 0%, rgba(38,74,50,0.97) 50%, rgba(55,95,64,0.97) 100%); }
+        .analyse-visual { position: relative; width: 160px; height: 160px; margin-bottom: 40px; }
+        .ring { position: absolute; top: 50%; left: 50%; border-radius: 50%; border: 2px solid transparent; transform: translate(-50%,-50%); }
+        .ring-1 { width: 160px; height: 160px; border-top-color: #6aab7e; border-right-color: rgba(106,171,126,0.28); animation: spinRing 1.4s linear infinite; }
+        .ring-2 { width: 120px; height: 120px; border-top-color: #b2eecc; border-left-color: rgba(178,238,204,0.28); animation: spinRing 1.8s linear infinite reverse; }
+        .ring-3 { width: 80px; height: 80px; border-top-color: #f5a623; border-bottom-color: rgba(245,166,35,0.28); animation: spinRing 1s linear infinite; }
+        .ring-center { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 44px; height: 44px; background: radial-gradient(circle, rgba(106,171,126,0.32), rgba(106,171,126,0.04)); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #b2eecc; font-size: 18px; }
+        @keyframes spinRing { from { transform: translate(-50%,-50%) rotate(0deg); } to { transform: translate(-50%,-50%) rotate(360deg); } }
+        .analyse-label { color: #fff; font-size: 26px; font-weight: 700; margin-bottom: 10px; animation: pulseFade 2s ease-in-out infinite; }
+        @keyframes pulseFade { 0%,100% { opacity: 0.7; } 50% { opacity: 1; } }
+        .analyse-sub { color: rgba(255,255,255,0.42); font-size: 13px; font-weight: 400; letter-spacing: 2px; text-transform: uppercase; }
+        .scan-line { width: 200px; height: 2px; background: linear-gradient(90deg, transparent, #6aab7e, transparent); margin-top: 30px; animation: scanAnim 2s ease-in-out infinite; }
+        @keyframes scanAnim { 0%,100% { transform: scaleX(0.3); opacity: 0.4; } 50% { transform: scaleX(1); opacity: 1; } }
+
+        /* ─── RESULT PAGE ─── */
+        #result {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            display: none; padding-top: 80px; z-index: 1000; overflow-y: auto;
+        }
+        #result::-webkit-scrollbar { width: 5px; }
+        #result::-webkit-scrollbar-thumb { background: rgba(106,171,126,0.3); border-radius: 3px; }
+        .result-bg { position: fixed; inset: 0; background: linear-gradient(135deg, rgba(20,45,28,0.92) 0%, rgba(38,74,50,0.88) 50%, rgba(55,95,64,0.9) 100%), url('https://images.unsplash.com/photo-1536566482680-fca31930a0bd?w=1600&q=80') center/cover no-repeat; z-index: 0; pointer-events: none; }
+        .result-content { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; padding: 40px 20px 60px; text-align: center; min-height: calc(100vh - 80px); }
+        .result-badge { width: 100px; height: 100px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 40px; margin-bottom: 22px; animation: popIn 0.6s cubic-bezier(0.175,0.885,0.32,1.275) both; flex-shrink: 0; }
+        .result-badge.safe { background: radial-gradient(circle, rgba(106,171,126,0.24), rgba(74,124,89,0.05)); border: 2px solid rgba(106,171,126,0.48); color: #b2eecc; box-shadow: 0 0 50px rgba(106,171,126,0.24); }
+        .result-badge.unsafe { background: radial-gradient(circle, rgba(229,62,62,0.2), rgba(229,62,62,0.04)); border: 2px solid rgba(229,62,62,0.38); color: #e53e3e; box-shadow: 0 0 40px rgba(229,62,62,0.2); }
+        @keyframes popIn { 0% { transform: scale(0); opacity: 0; } 70% { transform: scale(1.1); opacity: 1; } 100% { transform: scale(1); } }
+        #finalOutput { font-size: 28px; font-weight: 700; margin-bottom: 10px; animation: fadeInUp 0.6s ease 0.3s both; max-width: 700px; line-height: 1.3; }
+        .result-sub { color: rgba(255,255,255,0.38); font-size: 14px; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 28px; animation: fadeInUp 0.6s ease 0.4s both; }
+
+        /* ── Inline video player ── */
+        .result-video-wrap {
+            width: 100%; max-width: 860px;
+            background: rgba(0,0,0,0.45);
+            border: 1px solid rgba(106,171,126,0.25);
+            border-radius: 16px; overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+            margin-bottom: 26px;
+            animation: fadeInUp 0.6s ease 0.45s both;
+        }
+        .result-video-wrap video {
+            width: 100%; display: block;
+            max-height: 55vh; background: #000;
+        }
+        .result-video-label {
+            padding: 10px 18px;
+            display: flex; align-items: center; gap: 8px;
+            background: rgba(0,0,0,0.3);
+            border-top: 1px solid rgba(255,255,255,0.06);
+            font-size: 11px; font-weight: 600; letter-spacing: 1.5px;
+            text-transform: uppercase; color: rgba(255,255,255,0.38);
+        }
+        .result-video-label i { font-size: 12px; }
+        .video-error-msg {
+            display: none; padding: 14px 18px;
+            background: rgba(229,62,62,0.12);
+            border-top: 1px solid rgba(229,62,62,0.25);
+            color: #fc8181; font-size: 12px; text-align: center;
+        }
+
+        .result-card { background: rgba(255,255,255,0.06); border: 1px solid rgba(106,171,126,0.18); border-radius: 16px; padding: 20px 36px; backdrop-filter: blur(15px); animation: fadeInUp 0.6s ease 0.5s both; margin-bottom: 28px; }
+        .result-card p { color: rgba(255,255,255,0.48); font-size: 13px; }
+        .btn-back-home { background: linear-gradient(135deg, rgba(74,124,89,0.28), rgba(74,124,89,0.14)) !important; border: 1px solid rgba(106,171,126,0.38) !important; border-radius: 12px !important; color: #b2eecc !important; font-size: 13px !important; font-weight: 700 !important; padding: 14px 40px !important; letter-spacing: 1.5px !important; cursor: pointer; transition: all 0.3s !important; animation: fadeInUp 0.6s ease 0.6s both; }
+        .btn-back-home:hover { background: linear-gradient(135deg, rgba(74,124,89,0.48), rgba(74,124,89,0.28)) !important; transform: translateY(-2px) !important; box-shadow: 0 8px 25px rgba(74,124,89,0.38) !important; }
+
+        /* ─── HISTORY PAGE ─── */
+        #history { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; display: none; padding-top: 80px; z-index: 1000; overflow: hidden; }
+        .history-bg { position: absolute; inset: 0; background: linear-gradient(135deg, rgba(20,45,28,0.93) 0%, rgba(38,74,50,0.9) 55%, rgba(55,95,64,0.92) 100%), url('https://images.unsplash.com/photo-1571902943202-507ec2618e8f?w=1600&q=80') center/cover no-repeat; }
+        .history-content { position: relative; z-index: 2; height: calc(100vh - 80px); padding: 40px 8%; overflow-y: auto; }
+        .history-content::-webkit-scrollbar { width: 5px; }
+        .history-content::-webkit-scrollbar-thumb { background: rgba(106,171,126,0.28); border-radius: 3px; }
+        .history-header { display: flex; align-items: center; gap: 15px; margin-bottom: 35px; animation: fadeInDown 0.6s ease both; }
+        .history-header h2 { font-size: 32px; font-weight: 700; color: #fff; }
+        .history-header .header-line { flex: 1; height: 1px; background: linear-gradient(90deg, rgba(106,171,126,0.38), transparent); }
+        .history-count { background: rgba(74,124,89,0.2); border: 1px solid rgba(106,171,126,0.32); color: #b2eecc; font-size: 12px; font-weight: 700; padding: 4px 12px; border-radius: 20px; }
+        .history-table-wrapper { background: rgba(255,255,255,0.05); border: 1px solid rgba(106,171,126,0.13); border-radius: 18px; overflow: hidden; backdrop-filter: blur(18px); box-shadow: 0 20px 60px rgba(0,0,0,0.28); animation: fadeInUp 0.6s ease 0.1s both; }
+        #historyTable { width: 100%; border-collapse: collapse; }
+        #historyTable thead tr { background: linear-gradient(135deg, rgba(74,124,89,0.28), rgba(74,124,89,0.13)); border-bottom: 1px solid rgba(106,171,126,0.18); }
+        #historyTable th { padding: 18px 25px; color: #b2eecc; font-size: 12px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; text-align: left; }
+        #historyTable td { padding: 18px 25px; border-bottom: 1px solid rgba(255,255,255,0.04); color: rgba(255,255,255,0.72); font-size: 14px; }
+        #historyTable tbody tr { transition: background 0.2s; animation: tableRowIn 0.4s ease both; }
+        #historyTable tbody tr:hover { background: rgba(74,124,89,0.1); }
+        #historyTable tbody tr:last-child td { border-bottom: none; }
+        @keyframes tableRowIn { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: translateX(0); } }
+        .status-badge { display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 700; letter-spacing: 0.5px; }
+        .status-safe { background: rgba(106,171,126,0.14); border: 1px solid rgba(106,171,126,0.32); color: #b2eecc; }
+        .status-unsafe { background: rgba(229,62,62,0.11); border: 1px solid rgba(229,62,62,0.28); color: #fc8181; }
+        .file-icon-cell { display: flex; align-items: center; gap: 12px; }
+        .file-icon-cell i { color: rgba(106,171,126,0.55); font-size: 16px; }
+        .history-empty { padding: 60px; text-align: center; color: rgba(255,255,255,0.28); }
+        .history-empty i { font-size: 40px; margin-bottom: 15px; display: block; }
+        .history-footer { display: flex; justify-content: center; margin-top: 25px; animation: fadeInUp 0.6s ease 0.2s both; }
+        .btn-back-ghost { background: transparent !important; border: 1px solid rgba(106,171,126,0.22) !important; border-radius: 10px !important; color: rgba(255,255,255,0.38) !important; font-size: 12px !important; font-weight: 600 !important; padding: 10px 28px !important; letter-spacing: 1px !important; cursor: pointer; transition: all 0.2s !important; }
+        .btn-back-ghost:hover { border-color: rgba(106,171,126,0.48) !important; color: #b2eecc !important; }
+
+        /* ─── SHARED ANIMATIONS ─── */
+        @keyframes fadeInDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeInUp   { from { opacity: 0; transform: translateY(20px);  } to { opacity: 1; transform: translateY(0); } }
+
+        /* ─── RESPONSIVE ─── */
+        @media (max-width: 900px) {
+            .about-grid { grid-template-columns: 1fr; gap: 35px; }
+            .features-grid { grid-template-columns: 1fr 1fr; }
+            .contact-inner { grid-template-columns: 1fr; gap: 40px; }
+            .form-row { grid-template-columns: 1fr; }
+            .hero-float-card, .hero-float-card-2 { display: none; }
+            .footer-stats { gap: 20px; }
+        }
+        @media (max-width: 700px) {
+            .main-card { flex-direction: column; height: auto; min-height: 560px; }
+            .panel-left { min-height: 220px; }
+            .panel-stats { display: none; }
+        }
+        @media (max-width: 600px) {
+            .features-grid { grid-template-columns: 1fr; }
+            .about-hero-content h1 { font-size: 34px; }
+            .top-nav { padding: 18px 24px; }
+            .hero-overlay { padding: 35px 28px; }
+            .hero-overlay h1 { font-size: 32px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="auth-particle" style="left:8%;  width:6px;  height:6px;  background:rgba(178,238,204,0.5); animation-duration:12s; animation-delay:0s;"></div>
+    <div class="auth-particle" style="left:22%; width:4px;  height:4px;  background:rgba(106,171,126,0.4); animation-duration:15s; animation-delay:-4s;"></div>
+    <div class="auth-particle" style="left:38%; width:8px;  height:8px;  background:rgba(255,255,255,0.2); animation-duration:10s; animation-delay:-7s;"></div>
+    <div class="auth-particle" style="left:55%; width:5px;  height:5px;  background:rgba(245,166,35,0.35); animation-duration:18s; animation-delay:-2s;"></div>
+    <div class="auth-particle" style="left:70%; width:4px;  height:4px;  background:rgba(178,238,204,0.4); animation-duration:13s; animation-delay:-9s;"></div>
+    <div class="auth-particle" style="left:85%; width:7px;  height:7px;  background:rgba(106,171,126,0.3); animation-duration:16s; animation-delay:-5s;"></div>
+    <div class="auth-particle" style="left:14%; width:5px;  height:5px;  background:rgba(255,255,255,0.15);animation-duration:11s; animation-delay:-3s;"></div>
+    <div class="auth-particle" style="left:63%; width:6px;  height:6px;  background:rgba(178,238,204,0.35);animation-duration:20s; animation-delay:-11s;"></div>
+
+    <!-- NAVIGATION -->
+    <nav class="top-nav" id="topNav">
+        <div class="logo" style="color: var(--nature-green); font-weight: 800; font-size: 22px;"></div>
+        <div style="display: flex; align-items: center;">
+            <div class="nav-links">
+                <a href="#" onclick="goHome()">HOME</a>
+                <a href="#" onclick="showAboutPage()">ABOUT</a>
+                <a href="#" onclick="loadHistory()">HISTORY</a>
+                <a href="#" onclick="logout()" style="color: #ff4b5c;">LOGOUT</a>
+            </div>
+            <div class="user-profile" id="profileIcon">?</div>
+        </div>
+    </nav>
+
+    <!-- AUTH CARD -->
+    <div class="main-card" id="mainCard">
+        <div id="authView" class="auth-container">
+            <div class="panel-left">
+                <div class="panel-left-bg" id="panelBg"></div>
+                <div class="panel-deco-ring panel-deco-ring-1"></div>
+                <div class="panel-deco-ring panel-deco-ring-2"></div>
+                <div class="panel-deco-ring panel-deco-ring-3"></div>
+                <i class="fas fa-leaf float-icon"></i>
+                <i class="fas fa-tree float-icon"></i>
+                <i class="fas fa-shield-alt float-icon"></i>
+                <i class="fas fa-eye float-icon"></i>
+                <div class="panel-left-content">
+                    <div class="panel-left-badge"><i class="fas fa-circle" style="font-size:7px;"></i> Intelligent Surveillance</div>
+                    <h1 id="overlayTitle">Hello,<br>User!</h1>
+                    <p id="overlayText">Enter your login credentials and start your journey.</p>
+                    <button class="ghost" id="ghostBtn" onclick="toggleView()">Sign Up</button>
+                </div>
+                <div class="panel-stats">
+                    <div class="panel-stat"><div class="panel-stat-val">YOLO</div><div class="panel-stat-lbl">Detection Model</div></div>
+                    <div class="panel-stat"><div class="panel-stat-val">2</div><div class="panel-stat-lbl">Activity Classes</div></div>
+                    <div class="panel-stat"><div class="panel-stat-val">AI</div><div class="panel-stat-lbl">Powered</div></div>
+                </div>
+            </div>
+            <div class="panel-right">
+                <div id="login" class="section" style="display:block;">
+                    <div class="form-title">Welcome Back</div>
+                    <div class="form-subtitle">Sign in to access the dashboard</div>
+                    <form id="loginForm">
+                        <div class="input-container"><i class="fa fa-user"></i><input type="text" id="loginUser" placeholder="Username" required></div>
+                        <div class="input-container"><i class="fa fa-lock"></i><input type="password" id="loginPass" placeholder="Password" required></div>
+                        <button type="submit" class="btn-auth"><i class="fas fa-sign-in-alt" style="margin-right:8px;"></i>LOGIN</button>
+                        <div id="loginError" class="error-msg"><i class="fas fa-exclamation-circle" style="margin-right:5px;"></i>Invalid credentials or password</div>
+                    </form>
+                    <div class="auth-divider"><span>or continue with</span></div>
+                    <div class="auth-socials">
+                        <button class="auth-social-btn" title="Google"><i class="fab fa-google"></i></button>
+                        <button class="auth-social-btn" title="Microsoft"><i class="fab fa-microsoft"></i></button>
+                        <button class="auth-social-btn" title="Apple"><i class="fab fa-apple"></i></button>
+                    </div>
+                </div>
+                <div id="signup" class="section">
+                    <div class="form-title">Create Account</div>
+                    <div class="form-subtitle">Join us to start protecting your park</div>
+                    <form id="signupForm">
+                        <div class="input-container"><i class="fa fa-user"></i><input type="text" id="signupUser" placeholder="Username" required></div>
+                        <div class="input-container"><i class="fa fa-envelope"></i><input type="email" id="signupEmail" placeholder="Email" required></div>
+                        <div class="input-container"><i class="fa fa-lock"></i><input type="password" id="signupPass" placeholder="Password" required></div>
+                        <div class="input-container"><i class="fa fa-lock"></i><input type="password" id="signupConfirm" placeholder="Confirm Password" required></div>
+                        <button type="submit" class="btn-auth"><i class="fas fa-user-plus" style="margin-right:8px;"></i>CREATE ACCOUNT</button>
+                        <div id="signupError" class="error-msg"><i class="fas fa-exclamation-circle" style="margin-right:5px;"></i>Username already exists</div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- HOME PAGE -->
+    <div id="home">
+        <div class="home-ticker">
+            <i class="fas fa-circle" style="font-size:6px; margin-right:10px; vertical-align:middle;"></i>
+            AI-Powered Park Surveillance &nbsp;·&nbsp; YOLO-Based Activity Recognition &nbsp;·&nbsp; Authorized vs Unauthorized Detection
+            <i class="fas fa-circle" style="font-size:6px; margin-left:10px; vertical-align:middle;"></i>
+        </div>
+        <div class="hero-section">
+            <div class="hero-bg"></div>
+            <div class="hero-overlay-gradient"></div>
+            <div class="hero-particle" style="top:20%; left:68%; animation-duration:6s;"></div>
+            <div class="hero-particle" style="top:55%; left:72%; width:5px; height:5px; animation-duration:8s; animation-delay:-3s;"></div>
+            <div class="hero-particle" style="top:35%; left:62%; width:10px; height:10px; background:rgba(245,166,35,0.25); animation-duration:7s; animation-delay:-1s;"></div>
+            <div class="hero-particle" style="top:70%; left:75%; width:6px; height:6px; animation-duration:9s; animation-delay:-5s;"></div>
+            <div class="hero-overlay">
+                <div class="hero-tag"><span></span> Activity Recognition</div>
+                <h1>Intelligent Video<br>Surveillance for <em>Safer Parks.</em></h1>
+                <p>An AI-powered platform that monitors park footpaths using YOLO-based object detection — flagging unauthorized activities in red and permitting walking &amp; running in green, keeping public spaces safe and orderly.</p>
+                <div class="cta-group">
+                    <button class="btn-orange" onclick="showUpload()"><i class="fas fa-play-circle" style="margin-right:8px;"></i>LAUNCH ANALYSIS</button>
+                    <button class="btn-dark" onclick="loadHistory()"><i class="fas fa-history" style="margin-right:8px;"></i>VIEW HISTORY</button>
+                </div>
+                <div class="hero-pills">
+                    <span class="hero-pill"><i class="fas fa-walking"></i> Walk &amp; Run</span>
+                    <span class="hero-pill"><i class="fas fa-shield-alt"></i> Secure</span>
+                    <span class="hero-pill"><i class="fas fa-brain"></i> YOLO-Powered</span>
+                    <span class="hero-pill"><i class="fas fa-leaf"></i> Eco-Aware</span>
+                </div>
+            </div>
+            <div class="hero-float-card">
+                <div class="hero-float-card-inner">
+                    <div class="hero-float-icon"><i class="fas fa-check-circle"></i></div>
+                    <div><p>System Active</p><span>All sensors online</span></div>
+                </div>
+            </div>
+            <div class="hero-float-card-2">
+                <div class="status-row"><div class="status-dot"></div> Model Ready</div>
+                <div class="sub-txt">YOLO detection loaded</div>
+            </div>
+        </div>
+        <div class="home-footer">
+            <div class="home-footer-tag"><i class="fas fa-video"></i> Intelligent Surveillance Platform</div>
+            <h3>AI-Powered Video Analysis for Smart Park Security</h3>
+            <p>This platform uses YOLO-based deep learning to analyse park footpath footage — automatically distinguishing permitted activities (walking, running) from unauthorized behaviors, helping administrators maintain safety and reduce incidents in public spaces.</p>
+            <div class="footer-stats">
+                <div class="footer-stat"><div class="footer-stat-val"></div><div class="footer-stat-lbl"></div></div>
+                <div class="footer-stat-divider"></div>
+                <div class="footer-stat"><div class="footer-stat-val"></div><div class="footer-stat-lbl"> </div></div>
+                <div class="footer-stat-divider"></div>
+                <div class="footer-stat"><div class="footer-stat-val"></div><div class="footer-stat-lbl"></div></div>
+                <div class="footer-stat-divider"></div>
+                <div class="footer-stat"><div class="footer-stat-val"></div><div class="footer-stat-lbl"></div></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ABOUT PAGE -->
+    <div id="about">
+        <div class="about-hero">
+            <div class="about-hero-content">
+                <div class="about-tag">About</div>
+                <h1>Detecting Activities,<br>Securing Communities.</h1>
+                <p>An intelligent AI surveillance platform that identifies authorized and unauthorized activities in park environments — keeping public spaces safer, smarter, and more welcoming for everyone.</p>
+            </div>
+        </div>
+        <div class="about-body">
+            <div class="about-grid">
+                <div class="about-text">
+                    <h2>What is this <span>System</span>?</h2>
+                    <p>This is an AI-based intelligent video surveillance platform built specifically for activity recognition and security management in parks. When an AI camera is deployed on a footpath, the system automatically classifies observed activities as authorized or unauthorized.</p>
+                    <p>Only walking and running are permitted on monitored footpaths. Any other activity is flagged as unauthorized and highlighted in red, while permitted activities are shown in green — giving administrators instant, color-coded clarity.</p>
+                </div>
+                <div class="about-img-wrap">
+                    <img src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&q=80" alt="Park landscape">
+                    <div class="about-img-badge"><i class="fas fa-shield-alt"></i> Automated Detection</div>
+                </div>
+            </div>
+            <div class="about-grid" style="margin-bottom:0;">
+                <div class="about-img-wrap">
+                    <img src="https://images.unsplash.com/photo-1571902943202-507ec2618e8f?w=800&q=80" alt="People jogging in park">
+                    <div class="about-img-badge"><i class="fas fa-running"></i> Walk &amp; Run Authorized</div>
+                </div>
+                <div class="about-text">
+                    <h2>How the <span>System</span> Works</h2>
+                    <p>Video data is collected from diverse park scenarios and annotated to categorize actions into authorized (walking, running) and unauthorized activities. Frames are preprocessed to handle noise, incomplete annotations, and inconsistencies before feeding into the model.</p>
+                    <p>A YOLO-based object detection model is trained, evaluated, and optimized to distinguish between activity classes in real-time. The result is a robust, accurate system validated across various park scenarios and lighting conditions.</p>
+                </div>
+            </div>
+        </div>
+        <div class="feature-section">
+            <div class="section-title">
+                <h3>Project Modules</h3>
+                <p>Four core development phases powering the platform</p>
+            </div>
+            <div class="features-grid">
+                <div class="feat-card"><div class="feat-icon"><i class="fas fa-database"></i></div><h4>Data Collection &amp; Preprocessing</h4><p>Video data collected from diverse park scenarios is annotated into authorized and unauthorized classes, then preprocessed to address noise, incomplete annotations, and inconsistencies before model training.</p></div>
+                <div class="feat-card"><div class="feat-icon"><i class="fas fa-brain"></i></div><h4>Model Training &amp; Evaluation</h4><p>YOLO-based object detection models are trained to identify walking, running, and other actions — then evaluated and optimized for accuracy in distinguishing authorized from unauthorized activities.</p></div>
+                <div class="feat-card"><div class="feat-icon"><i class="fas fa-desktop"></i></div><h4>UI Development</h4><p>A user-friendly interface designed to let park administrators upload video streams, view color-coded activity results (green for authorized, red for unauthorized), and manage surveillance efficiently.</p></div>
+                <div class="feat-card"><div class="feat-icon"><i class="fas fa-tasks"></i></div><h4>Testing &amp; Bug Fixing</h4><p>Comprehensive testing using holdout datasets ensures robust model performance across variable park scenarios, lighting conditions, and crowd densities — with iterative bug fixing for production stability.</p></div>
+                <div class="feat-card"><div class="feat-icon"><i class="fas fa-history"></i></div><h4>Activity History Log</h4><p>Every analysed video stream is logged with its classification result, giving administrators a complete audit trail for incident review, reporting, and pattern analysis over time.</p></div>
+                <div class="feat-card"><div class="feat-icon"><i class="fas fa-lock"></i></div><h4>Secure &amp; Role-Based Access</h4><p>All video data is processed securely with role-based authentication ensuring only authorized park administrators can access surveillance results, history logs, and system settings.</p></div>
+            </div>
+        </div>
+        <div class="contact-section">
+            <div class="contact-section-bg"></div>
+            <div class="contact-inner">
+                <div class="contact-info">
+                    <h3>Get in Touch<br>with <span>Our Team</span></h3>
+                    <p>Have a question about the project, want to report an issue, or need help deploying this system for your park? We'd love to hear from you — reach out through any of the channels below.</p>
+                    <div class="contact-chips">
+                        <div class="contact-chip"><div class="contact-chip-icon"><i class="fas fa-envelope"></i></div><div class="contact-chip-text"><strong>Email Us</strong>support@visionai.park</div></div>
+                        <div class="contact-chip"><div class="contact-chip-icon"><i class="fas fa-phone"></i></div><div class="contact-chip-text"><strong>Call Support</strong>+1 (800) VISION-AI</div></div>
+                        <div class="contact-chip"><div class="contact-chip-icon"><i class="fas fa-map-marker-alt"></i></div><div class="contact-chip-text"><strong>Headquarters</strong>Green Tech Park, Innovation Drive</div></div>
+                        <div class="contact-chip"><div class="contact-chip-icon"><i class="fas fa-clock"></i></div><div class="contact-chip-text"><strong>Response Time</strong>Within 24 hours on business days</div></div>
+                    </div>
+                </div>
+                <div class="contact-form-box">
+                    <h4>Send a Message</h4>
+                    <p class="form-sub">We respond within 24 hours on business days.</p>
+                    <form id="contactForm" onsubmit="submitContact(event)">
+                        <div class="form-row">
+                            <div class="form-group"><label>First Name</label><input type="text" placeholder="John" required></div>
+                            <div class="form-group"><label>Last Name</label><input type="text" placeholder="Doe" required></div>
+                        </div>
+                        <div class="form-group"><label>Email Address</label><input type="email" placeholder="john@example.com" required></div>
+                        <div class="form-group"><label>Query Type</label>
+                            <select><option value="" disabled selected>Select a topic</option><option>General Enquiry</option><option>Technical Support</option><option>Report an Issue</option><option>Feature Request</option><option>Partnership</option><option>Other</option></select>
+                        </div>
+                        <div class="form-group"><label>Message</label><textarea placeholder="Describe your query or message here..."></textarea></div>
+                        <button type="submit" class="btn-contact"><i class="fas fa-paper-plane" style="margin-right:8px;"></i>SEND MESSAGE</button>
+                        <div class="contact-success" id="contactSuccess"><i class="fas fa-check-circle" style="margin-right:8px;"></i>Message sent! We'll be in touch soon.</div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="about-page-footer">
+            <button class="btn-about-back" onclick="goHome()"><i class="fas fa-arrow-left" style="margin-right:6px;"></i>Back to Dashboard</button>
+        </div>
+    </div>
+
+    <!-- UPLOAD PAGE -->
+    <div id="upload">
+        <div class="upload-bg"></div>
+        <div class="orb orb-1"></div><div class="orb orb-2"></div><div class="orb orb-3"></div>
+        <div id="analysingIndicator">
+            <div class="analyse-visual">
+                <div class="ring ring-1"></div><div class="ring ring-2"></div><div class="ring ring-3"></div>
+                <div class="ring-center"><i class="fas fa-eye"></i></div>
+            </div>
+            <div class="analyse-label">Analysing</div>
+            <div class="analyse-sub">Processing video stream</div>
+            <div class="scan-line"></div>
+        </div>
+        <div class="upload-content" id="uploadContent">
+            <div class="upload-header">
+                <h2>Launch Analysis</h2>
+                <p>Upload a video stream to begin AI-powered activity detection</p>
+            </div>
+            <div class="upload-card">
+                <form id="uploadForm">
+                    <div class="drop-zone" id="dropZone" onclick="document.getElementById('videoFile').click()">
+                        <div class="drop-icon"><i class="fas fa-cloud-upload-alt"></i></div>
+                        <h3>Drop your video file here</h3>
+                        <p>or <span>browse to upload</span></p>
+                        <p style="margin-top:8px; font-size:11px; color:rgba(255,255,255,0.2);">MP4, AVI, MOV &bull; Max 500MB</p>
+                    </div>
+                    <input type="file" id="videoFile" accept="video/*" required>
+                    <div class="file-selected-info" id="fileSelectedInfo">
+                        <i class="fas fa-file-video"></i>
+                        <span class="file-name" id="fileNameLabel">filename.mp4</span>
+                        <span class="file-clear" onclick="clearFile(event)"><i class="fas fa-times-circle"></i></span>
+                    </div>
+                    <button type="submit" class="btn-analyze" id="analyzeBtn"><i class="fas fa-play-circle" style="margin-right:8px;"></i>START ANALYSIS</button>
+                </form>
+            </div>
+            <button class="upload-back-btn" onclick="goHome()" id="uploadBackBtn"><i class="fas fa-arrow-left" style="margin-right:6px;"></i>Back to Dashboard</button>
+        </div>
+    </div>
+
+    <!-- RESULT PAGE -->
+    <div id="result">
+        <div class="result-bg"></div>
+        <div class="orb orb-1"></div><div class="orb orb-2"></div>
+        <div class="result-content">
+            <div class="result-badge" id="resultBadge">✓</div>
+            <div id="finalOutput">SAFE ACTIVITY DETECTED</div>
+            <div class="result-sub">Analysis Complete</div>
+
+            <!-- Inline annotated video -->
+            <div class="result-video-wrap" id="resultVideoWrap" style="display:none;">
+                <video id="resultVideo" controls autoplay muted loop playsinline preload="auto"></video>
+                <div class="result-video-label">
+                    <i class="fas fa-film"></i>
+                    <span id="resultVideoLabelText">Annotated Output</span>
+                </div>
+                <div class="video-error-msg" id="videoErrorMsg">
+                    <i class="fas fa-exclamation-triangle" style="margin-right:6px;"></i>
+                    Video could not be played in browser. Check that ffmpeg is installed on your server (<code>sudo apt install ffmpeg</code>).
+                </div>
+            </div>
+
+            <div class="result-card"><p>The uploaded video stream has been processed by the AI detection model.</p></div>
+            <button class="btn-back-home" onclick="goHome()"><i class="fas fa-home" style="margin-right:8px;"></i>BACK TO DASHBOARD</button>
+        </div>
+    </div>
+
+    <!-- HISTORY PAGE -->
+    <div id="history">
+        <div class="history-bg"></div>
+        <div class="orb orb-1" style="top:20%; left:-10%;"></div>
+        <div class="orb orb-2" style="bottom:5%; right:0%;"></div>
+        <div class="history-content">
+            <div class="history-header">
+                <h2>System History</h2>
+                <div class="header-line"></div>
+                <span class="history-count" id="historyCount">0 records</span>
+            </div>
+            <div class="history-table-wrapper">
+                <table id="historyTable">
+                    <thead>
+                        <tr>
+                            <th><i class="fas fa-file-video" style="margin-right:8px;opacity:0.6;"></i>Video File</th>
+                            <th><i class="fas fa-shield-alt" style="margin-right:8px;opacity:0.6;"></i>Result</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historyBody">
+                        <tr><td colspan="2" class="history-empty"><i class="fas fa-database"></i>No records found</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="history-footer">
+                <button class="btn-back-ghost" onclick="goHome()"><i class="fas fa-arrow-left" style="margin-right:6px;"></i>Back to Dashboard</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let isSignUpView = false;
+        const mainCard = document.getElementById("mainCard");
+
+        function toggleView() { if(isSignUpView) showLogin(); else showSignup(); }
+
+        function hideAll() {
+            mainCard.classList.add("card-hidden");
+            document.getElementById("home").style.display = "none";
+            document.getElementById("about").style.display = "none";
+            document.getElementById("upload").style.display = "none";
+            document.getElementById("result").style.display = "none";
+            document.getElementById("history").style.display = "none";
+            document.getElementById("analysingIndicator").style.display = "none";
+        }
+
+        function showLogin() {
+            hideAll(); isSignUpView = false;
+            mainCard.classList.remove("card-hidden");
+            document.getElementById("authView").style.display = "flex";
+            document.getElementById("login").style.display = "block";
+            document.getElementById("signup").style.display = "none";
+            document.getElementById("overlayTitle").innerText = "Hello,\nUser!";
+            document.getElementById("overlayText").innerText = "Enter your login credentials and start your journey.";
+            document.getElementById("ghostBtn").innerText = "Sign Up";
+            document.getElementById("topNav").style.display = "none";
+        }
+
+        function showSignup() {
+            hideAll(); isSignUpView = true;
+            mainCard.classList.remove("card-hidden");
+            document.getElementById("authView").style.display = "flex";
+            document.getElementById("signup").style.display = "block";
+            document.getElementById("login").style.display = "none";
+            document.getElementById("overlayTitle").innerText = "Welcome\nBack!";
+            document.getElementById("overlayText").innerText = "To keep connected with us please login with your personal info";
+            document.getElementById("ghostBtn").innerText = "Sign In";
+        }
+
+        function showHome(username) {
+            hideAll();
+            document.getElementById("home").style.display = "flex";
+            document.getElementById("topNav").style.display = "flex";
+            if(username) document.getElementById("profileIcon").innerText = username.charAt(0).toUpperCase();
+        }
+
+        function showAboutPage() {
+            hideAll();
+            const a = document.getElementById("about");
+            a.style.display = "flex";
+            a.style.flexDirection = "column";
+            document.getElementById("topNav").style.display = "flex";
+            a.scrollTop = 0;
+        }
+
+        function showUpload() {
+            hideAll();
+            document.getElementById("upload").style.display = "block";
+            document.getElementById("uploadContent").style.display = "flex";
+            document.getElementById("analyzeBtn").style.display = "block";
+            document.getElementById("uploadBackBtn").style.display = "block";
+            document.getElementById("topNav").style.display = "flex";
+        }
+
+        function goHome() { showHome(); }
+        function logout() { showLogin(); }
+
+        function submitContact(e) {
+            e.preventDefault();
+            document.getElementById("contactSuccess").style.display = "block";
+            e.target.reset();
+            setTimeout(() => { document.getElementById("contactSuccess").style.display = "none"; }, 5000);
+        }
+
+        const dropZone = document.getElementById("dropZone");
+        const videoFileInput = document.getElementById("videoFile");
+        dropZone.addEventListener("dragover", (e) => { e.preventDefault(); dropZone.classList.add("drag-over"); });
+        dropZone.addEventListener("dragleave", () => dropZone.classList.remove("drag-over"));
+        dropZone.addEventListener("drop", (e) => {
+            e.preventDefault(); dropZone.classList.remove("drag-over");
+            if(e.dataTransfer.files.length) { videoFileInput.files = e.dataTransfer.files; updateFileDisplay(e.dataTransfer.files[0].name); }
+        });
+        videoFileInput.addEventListener("change", function() { if(this.files.length) updateFileDisplay(this.files[0].name); });
+        function updateFileDisplay(name) {
+            document.getElementById("fileNameLabel").textContent = name;
+            document.getElementById("fileSelectedInfo").style.display = "flex";
+            dropZone.style.display = "none";
+        }
+        function clearFile(e) {
+            e.stopPropagation(); videoFileInput.value = "";
+            document.getElementById("fileSelectedInfo").style.display = "none";
+            dropZone.style.display = "block";
+        }
+
+        document.getElementById("loginForm").addEventListener("submit", function(e){
+            e.preventDefault();
+            const errorDiv = document.getElementById("loginError");
+            fetch("/login", { method: "POST", headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({ username: document.getElementById("loginUser").value, password: document.getElementById("loginPass").value })
+            }).then(res => res.json()).then(data => {
+                if(data.status === "success") { errorDiv.style.display = "none"; showHome(data.user); }
+                else { errorDiv.style.display = "block"; }
+            });
+        });
+
+        document.getElementById("signupForm").addEventListener("submit", function(e){
+            e.preventDefault();
+            const errorDiv = document.getElementById("signupError");
+            fetch("/signup", { method: "POST", headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({ username: document.getElementById("signupUser").value, email: document.getElementById("signupEmail").value, password: document.getElementById("signupPass").value, confirm: document.getElementById("signupConfirm").value })
+            }).then(res => res.json()).then(data => {
+                if(data.status === "success" || data.message.includes("success")) { errorDiv.style.display = "none"; showLogin(); }
+                else { errorDiv.style.display = "block"; }
+            });
+        });
+
+        document.getElementById("uploadForm").addEventListener("submit", function(e){
+            e.preventDefault();
+            document.getElementById("uploadContent").style.display = "none";
+            document.getElementById("analysingIndicator").style.display = "flex";
+            let formData = new FormData();
+            formData.append("video", document.getElementById("videoFile").files[0]);
+
+            fetch("/analyze", { method: "POST", body: formData })
+            .then(response => response.json())
+            .then(data => {
+                hideAll();
+                document.getElementById("result").style.display = "block";
+                document.getElementById("topNav").style.display = "flex";
+
+                let outputDiv = document.getElementById("finalOutput");
+                let badge    = document.getElementById("resultBadge");
+                let labelTxt = document.getElementById("resultVideoLabelText");
+
+                if (data.result.toUpperCase().includes("UNSAFE")) {
+                    outputDiv.style.color = "#fc8181";
+                    outputDiv.innerText   = data.result;
+                    badge.className       = "result-badge unsafe";
+                    badge.innerHTML       = "⚠";
+                    labelTxt.innerText    = "Annotated Output — UNSAFE Activity Flagged";
+                } else {
+                    let activity        = data.result.split(":").pop().trim();
+                    outputDiv.style.color = "#b2eecc";
+                    outputDiv.innerText   = "SAFE ACTIVITY DETECTED — " + activity.toUpperCase();
+                    badge.className       = "result-badge safe";
+                    badge.innerHTML       = "✓";
+                    labelTxt.innerText    = "Annotated Output — Safe: " + activity;
+                }
+
+                // ── Load annotated video inline ──
+                if (data.video_url) {
+                    const wrap    = document.getElementById("resultVideoWrap");
+                    const videoEl = document.getElementById("resultVideo");
+                    const errMsg  = document.getElementById("videoErrorMsg");
+
+                    // Reset error state
+                    errMsg.style.display = "none";
+
+                    // Remove all existing sources and set fresh one
+                    while (videoEl.firstChild) videoEl.removeChild(videoEl.firstChild);
+                    const src = document.createElement("source");
+                    src.src  = data.video_url + "?t=" + Date.now();
+                    src.type = "video/mp4";
+                    videoEl.appendChild(src);
+
+                    // Show error banner if browser can't play it
+                    videoEl.onerror = function() {
+                        errMsg.style.display = "block";
+                    };
+                    videoEl.addEventListener("error", function() {
+                        errMsg.style.display = "block";
+                    }, { once: true });
+
+                    wrap.style.display = "block";
+                    videoEl.load();
+                    videoEl.play().catch(() => {
+                        // Autoplay blocked by browser policy — controls still work
+                    });
+                } else {
+                    document.getElementById("resultVideoWrap").style.display = "none";
+                }
+
+                document.getElementById("result").scrollTop = 0;
+            });
+        });
+
+        function loadHistory(){
+            fetch("/history").then(res => res.json()).then(data => {
+                hideAll();
+                document.getElementById("history").style.display = "block";
+                document.getElementById("topNav").style.display = "flex";
+                const tbody = document.getElementById("historyBody");
+                const count = document.getElementById("historyCount");
+                tbody.innerHTML = "";
+                count.textContent = data.history.length + " record" + (data.history.length !== 1 ? "s" : "");
+                if(data.history.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="2" class="history-empty"><i class="fas fa-database"></i>No records found</td></tr>`;
+                    return;
+                }
+                data.history.forEach((row, i) => {
+                    let tr = document.createElement("tr");
+                    tr.style.animationDelay = (i * 0.05) + "s";
+                    let isUnsafe   = row[1].toUpperCase().includes("UNSAFE");
+                    let badgeClass = isUnsafe ? "status-badge status-unsafe" : "status-badge status-safe";
+                    let badgeIcon  = isUnsafe ? "fas fa-exclamation-triangle" : "fas fa-check-circle";
+                    tr.innerHTML = `<td><div class="file-icon-cell"><i class="fas fa-file-video"></i>${row[0]}</div></td><td><span class="${badgeClass}"><i class="${badgeIcon}"></i>${row[1]}</span></td>`;
+                    tbody.appendChild(tr);
+                });
+            });
+        }
+    </script>
+</body>
+</html>
