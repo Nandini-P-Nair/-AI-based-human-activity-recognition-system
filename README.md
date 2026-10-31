@@ -2,7 +2,7 @@
 
 ## Overview
 
-The **AI-Enabled Surveillance Platform for Public Parks** is an AI/ML-based video surveillance system developed as part of **Infosys Springboard Virtual Internship 6.0**.
+The **AI-Enabled Surveillance Platform for Public Parks** is an AI/ML-based video surveillance system.
 
 The project aims to automate human activity recognition and behaviour-based safety monitoring in public park environments using Computer Vision and Deep Learning techniques.
 
